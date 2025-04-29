@@ -41,14 +41,20 @@ function renderTable() {
     row.innerHTML = `
       <td>${client.id}</td>
       <td>${client.name}</td>
+      <td>${client.phone || ''}</td>
       <td style="background-color: ${client.paused ? '' : '#d4edda'}">
         <button onclick="toggleTimer('${client.id}')" id="btn-${client.id}">
           ${client.paused ? 'Start' : 'Pause'}
         </button>
-      </td>
+      </td>  
       <td id="time-${client.id}" style="background-color: ${client.paused ? '' : '#d4edda'}">
         ${formatTime(remaining)}
-      </td>    
+      </td>   
+      <td>  
+        <button onclick="addHours('${client.id}')" style="margin-top: 4px;">
+          Add Time
+        </button>
+      </td> 
       <td>${client.buyDate}</td>
       <td>
       <button class="delete" onclick="deleteClient('${client.id}')">Delete</button>
@@ -115,20 +121,35 @@ async function saveClients() {
   }
 }
 
+function addHours(id) {
+  const client = clients.find(c => c.id === id)
+  if (!client) return
+
+  const input = prompt(`Add how many hours to ${client.name}?`)
+  const hours = parseInt(input, 10)
+  if (isNaN(hours) || hours <= 0) return
+
+  client.totalSeconds += hours * 3600
+
+  renderTable()
+  saveClients()
+}
+
 document.getElementById('addClientForm').addEventListener('submit', async (e) => {
   e.preventDefault()
 
   const id = document.getElementById('clientId').value.trim()
   const name = document.getElementById('clientName').value.trim()
+  const phone = document.getElementById('clientPhone').value.trim()
   const today = new Date()
   const buyDate = today.toISOString().slice(0, 10)
   const hours = parseInt(document.getElementById('hours').value, 10)
   const seconds = hours * 3600
 
-  if (!id || !name || isNaN(hours) || hours <= 0) {
+  if (!id || !name || !phone || isNaN(hours) || hours <= 0) {
     alert('Please fill in all fields correctly.')
     return
-  }
+  }  
 
   const password = prompt('Enter password to add client:')
   if (!password) return
@@ -154,6 +175,7 @@ document.getElementById('addClientForm').addEventListener('submit', async (e) =>
   const newClient = {
     id,
     name,
+    phone,
     buyDate,
     totalSeconds: seconds,
     elapsedSeconds: 0,
