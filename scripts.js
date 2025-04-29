@@ -39,7 +39,7 @@ function renderTable() {
     row.id = `row-${client.id}`
     row.innerHTML = `
       <td>${client.id}</td>
-      <td>${client.role || 'guest'}</td>
+      <td>${client.role}</td>
       <td>${client.name}</td>
       <td>${client.phone || ''}</td>
       <td style="background-color: ${client.paused ? '' : '#d4edda'}">
