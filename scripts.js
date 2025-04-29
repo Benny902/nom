@@ -39,6 +39,7 @@ function renderTable() {
     row.id = `row-${client.id}`
     row.innerHTML = `
       <td>${client.id}</td>
+      <td>${client.role || 'guest'}</td>
       <td>${client.name}</td>
       <td>${client.phone || ''}</td>
       <td style="background-color: ${client.paused ? '' : '#d4edda'}">
@@ -136,7 +137,7 @@ function addHours(id) {
 document.getElementById('addClientForm').addEventListener('submit', async (e) => {
   e.preventDefault()
 
-  const id = document.getElementById('clientId').value.trim()
+  const id = clients.length + 1;
   const name = document.getElementById('clientName').value.trim()
   const phone = document.getElementById('clientPhone').value.trim()
   const hours = parseInt(document.getElementById('hours').value, 10)
@@ -176,8 +177,9 @@ document.getElementById('addClientForm').addEventListener('submit', async (e) =>
     totalSeconds: seconds,
     elapsedSeconds: 0,
     startTimestamp: null,
-    paused: true
-  }
+    paused: true,
+    role: 'guest'
+  }  
 
   clients.push(newClient)
   renderTable()
