@@ -41,12 +41,14 @@ function renderTable() {
     row.innerHTML = `
       <td>${client.id}</td>
       <td>${client.name}</td>
-      <td>
+      <td style="background-color: ${client.paused ? '' : '#d4edda'}">
         <button onclick="toggleTimer('${client.id}')" id="btn-${client.id}">
           ${client.paused ? 'Start' : 'Pause'}
         </button>
       </td>
-      <td id="time-${client.id}">${formatTime(remaining)}</td>
+      <td id="time-${client.id}" style="background-color: ${client.paused ? '' : '#d4edda'}">
+        ${formatTime(remaining)}
+      </td>    
       <td>${client.buyDate}</td>
       <td>
       <button class="delete" onclick="deleteClient('${client.id}')">Delete</button>

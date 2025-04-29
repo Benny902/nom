@@ -51,6 +51,7 @@ body {
   
   table {
     width: 80%;
+    max-width: 800px;
     margin: 0 auto;
     border-collapse: collapse;
     background: white;
