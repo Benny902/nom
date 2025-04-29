@@ -140,6 +140,7 @@ document.getElementById('addClientForm').addEventListener('submit', async (e) =>
   const id = clients.length + 1;
   const name = document.getElementById('clientName').value.trim()
   const phone = document.getElementById('clientPhone').value.trim()
+  const role = document.getElementById('clientRole').value
   const hours = parseInt(document.getElementById('hours').value, 10)
   const seconds = hours * 3600
   const today = new Date().toISOString().slice(0, 10)
@@ -173,6 +174,7 @@ document.getElementById('addClientForm').addEventListener('submit', async (e) =>
     id,
     name,
     phone,
+    role,
     buyDate: today,
     totalSeconds: seconds,
     elapsedSeconds: 0,
