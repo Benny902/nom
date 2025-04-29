@@ -1,7 +1,6 @@
 const BACKEND_URL = 'https://nom-gaming-backend.onrender.com'
 
 let clients = []
-let timers = {}
 
 async function fetchClients() {
   try {
@@ -62,11 +61,9 @@ function toggleTimer(id) {
   if (!client) return
 
   if (client.paused) {
-    // START
     client.startTimestamp = new Date().toISOString()
     client.paused = false
   } else {
-    // PAUSE
     const start = new Date(client.startTimestamp).getTime()
     const now = Date.now()
     const extraElapsed = Math.floor((now - start) / 1000)
@@ -79,9 +76,18 @@ function toggleTimer(id) {
   saveClients()
 }
 
-function deleteClient(id) {
+async function deleteClient(id) {
   const password = prompt('Enter password to delete client:')
-  if (password !== '213') {
+  if (!password) return
+
+  const res = await fetch(`${BACKEND_URL}/check-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password })
+  })
+  const result = await res.json()
+
+  if (!result.valid) {
     alert('Incorrect password. Client not deleted.')
     return
   }
@@ -100,7 +106,7 @@ async function saveClients() {
     await fetch(`${BACKEND_URL}/clients`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: '213', clients })
+      body: JSON.stringify({ clients })
     })
   } catch (err) {
     console.error('Failed to save clients', err)
@@ -123,7 +129,16 @@ document.getElementById('addClientForm').addEventListener('submit', async (e) =>
   }
 
   const password = prompt('Enter password to add client:')
-  if (password !== '213') {
+  if (!password) return
+
+  const res = await fetch(`${BACKEND_URL}/check-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password })
+  })
+  const result = await res.json()
+
+  if (!result.valid) {
     alert('Incorrect password. Client not added.')
     return
   }
@@ -148,7 +163,6 @@ document.getElementById('addClientForm').addEventListener('submit', async (e) =>
 
   renderTable()
   await saveClients()
-
   document.getElementById('addClientForm').reset()
 })
 
@@ -164,13 +178,12 @@ function updateDisplayedTimes() {
 
     if (rowElement) {
       if (remaining <= 600 && remaining > 0) {
-        rowElement.style.backgroundColor = '#ffcccc' // Light red background
+        rowElement.style.backgroundColor = '#ffcccc'
       } else {
         rowElement.style.backgroundColor = ''
       }
     }
 
-    // Auto-pause if time is up
     if (remaining <= 0 && !client.paused) {
       toggleTimer(client.id)
       alert(`Client ${client.name} has finished their time.`)
@@ -178,11 +191,7 @@ function updateDisplayedTimes() {
   })
 }
 
-// Update display every second
 setInterval(updateDisplayedTimes, 1000)
+setInterval(() => fetchClients().catch(() => {}), 30000)
 
-// Auto-save every 30 seconds
-setInterval(saveClients, 30000)
-
-// Initial load
 fetchClients()
