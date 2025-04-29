@@ -1,4 +1,4 @@
-const BACKEND_URL = 'http://localhost:3000'
+const BACKEND_URL = 'https://nom-gaming-backend.onrender.com'
 
 let clients = []
 let timers = {}
