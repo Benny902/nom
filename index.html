@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NOM-Gaming - Client Hours</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>NOM-Gaming - Client Hours</h1>
+  </header>
+
+  <main>
+    <section id="addClientSection">
+      <form id="addClientForm">
+        <input type="text" id="clientId" placeholder="ID" required>
+        <input type="text" id="clientName" placeholder="Name" required>
+        <input type="number" id="hours" placeholder="Hours" min="1" required>
+        <button type="submit">Add Client</button>
+      </form>
+    </section>
+
+    <hr>
+
+    <section id="clientsSection">
+      <table id="clientsTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Timer Actions</th>
+            <th>Timer</th>
+            <th>Added date</th>
+            <th>Delete</th>
+          </tr>          
+        </thead>
+        <tbody>
+          <!-- Dynamically filled -->
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="scripts.js"></script>
+</body>
+</html>

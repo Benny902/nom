@@ -1,0 +1,188 @@
+const BACKEND_URL = 'http://localhost:3000'
+
+let clients = []
+let timers = {}
+
+async function fetchClients() {
+  try {
+    const res = await fetch(`${BACKEND_URL}/clients`)
+    clients = await res.json()
+    renderTable()
+  } catch (err) {
+    console.error('Failed to fetch clients', err)
+  }
+}
+
+function formatTime(seconds) {
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const s = seconds % 60
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+}
+
+function getRemainingSeconds(client) {
+  if (client.paused || !client.startTimestamp) {
+    return client.totalSeconds - client.elapsedSeconds
+  } else {
+    const start = new Date(client.startTimestamp).getTime()
+    const now = Date.now()
+    const extraElapsed = Math.floor((now - start) / 1000)
+    return client.totalSeconds - (client.elapsedSeconds + extraElapsed)
+  }
+}
+
+function renderTable() {
+  const tbody = document.querySelector('#clientsTable tbody')
+  tbody.innerHTML = ''
+
+  clients.forEach(client => {
+    const remaining = getRemainingSeconds(client)
+    const row = document.createElement('tr')
+    row.id = `row-${client.id}`
+    row.innerHTML = `
+      <td>${client.id}</td>
+      <td>${client.name}</td>
+      <td>
+        <button onclick="toggleTimer('${client.id}')" id="btn-${client.id}">
+          ${client.paused ? 'Start' : 'Pause'}
+        </button>
+      </td>
+      <td id="time-${client.id}">${formatTime(remaining)}</td>
+      <td>${client.buyDate}</td>
+      <td>
+      <button class="delete" onclick="deleteClient('${client.id}')">Delete</button>
+      </td>
+    `
+    tbody.appendChild(row)
+  })
+}
+
+function toggleTimer(id) {
+  const client = clients.find(c => c.id === id)
+  if (!client) return
+
+  if (client.paused) {
+    // START
+    client.startTimestamp = new Date().toISOString()
+    client.paused = false
+  } else {
+    // PAUSE
+    const start = new Date(client.startTimestamp).getTime()
+    const now = Date.now()
+    const extraElapsed = Math.floor((now - start) / 1000)
+    client.elapsedSeconds += extraElapsed
+    client.startTimestamp = null
+    client.paused = true
+  }
+
+  renderTable()
+  saveClients()
+}
+
+function deleteClient(id) {
+  const password = prompt('Enter password to delete client:')
+  if (password !== '213') {
+    alert('Incorrect password. Client not deleted.')
+    return
+  }
+
+  const confirmed = confirm('Are you sure you want to delete this client?')
+  if (!confirmed) return
+
+  clients = clients.filter(c => c.id !== id)
+
+  renderTable()
+  saveClients()
+}
+
+async function saveClients() {
+  try {
+    await fetch(`${BACKEND_URL}/clients`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: '213', clients })
+    })
+  } catch (err) {
+    console.error('Failed to save clients', err)
+  }
+}
+
+document.getElementById('addClientForm').addEventListener('submit', async (e) => {
+  e.preventDefault()
+
+  const id = document.getElementById('clientId').value.trim()
+  const name = document.getElementById('clientName').value.trim()
+  const today = new Date()
+  const buyDate = today.toISOString().slice(0, 10)
+  const hours = parseInt(document.getElementById('hours').value, 10)
+  const seconds = hours * 3600
+
+  if (!id || !name || isNaN(hours) || hours <= 0) {
+    alert('Please fill in all fields correctly.')
+    return
+  }
+
+  const password = prompt('Enter password to add client:')
+  if (password !== '213') {
+    alert('Incorrect password. Client not added.')
+    return
+  }
+
+  const exists = clients.some(c => c.id === id)
+  if (exists) {
+    alert('Client with this ID already exists.')
+    return
+  }
+
+  const newClient = {
+    id,
+    name,
+    buyDate,
+    totalSeconds: seconds,
+    elapsedSeconds: 0,
+    startTimestamp: null,
+    paused: true
+  }
+
+  clients.push(newClient)
+
+  renderTable()
+  await saveClients()
+
+  document.getElementById('addClientForm').reset()
+})
+
+function updateDisplayedTimes() {
+  clients.forEach(client => {
+    const remaining = getRemainingSeconds(client)
+    const timeElement = document.getElementById(`time-${client.id}`)
+    const rowElement = document.getElementById(`row-${client.id}`)
+
+    if (timeElement) {
+      timeElement.textContent = formatTime(Math.max(0, remaining))
+    }
+
+    if (rowElement) {
+      if (remaining <= 600 && remaining > 0) {
+        rowElement.style.backgroundColor = '#ffcccc' // Light red background
+      } else {
+        rowElement.style.backgroundColor = ''
+      }
+    }
+
+    // Auto-pause if time is up
+    if (remaining <= 0 && !client.paused) {
+      toggleTimer(client.id)
+      alert(`Client ${client.name} has finished their time.`)
+    }
+  })
+}
+
+// Update display every second
+setInterval(updateDisplayedTimes, 1000)
+
+// Auto-save every 30 seconds
+setInterval(saveClients, 30000)
+
+// Initial load
+fetchClients()
