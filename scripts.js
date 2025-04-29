@@ -180,7 +180,6 @@ document.getElementById('addClientForm').addEventListener('submit', async (e) =>
     elapsedSeconds: 0,
     startTimestamp: null,
     paused: true,
-    role: 'guest'
   }  
 
   clients.push(newClient)
