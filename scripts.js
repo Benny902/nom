@@ -20,14 +20,13 @@ function formatTime(seconds) {
 }
 
 function getRemainingSeconds(client) {
-  if (client.paused || !client.startTimestamp) {
-    return client.totalSeconds - client.elapsedSeconds
-  } else {
-    const start = new Date(client.startTimestamp).getTime()
-    const now = Date.now()
-    const extraElapsed = Math.floor((now - start) / 1000)
-    return client.totalSeconds - (client.elapsedSeconds + extraElapsed)
-  }
+  if (client.paused || !client.startTimestamp)
+    return Math.max(0, client.totalSeconds - client.elapsedSeconds)
+
+  const start = new Date(client.startTimestamp).getTime()
+  const now = Date.now()
+  const extraElapsed = Math.floor((now - start) / 1000)
+  return Math.max(0, client.totalSeconds - (client.elapsedSeconds + extraElapsed))
 }
 
 function renderTable() {
@@ -57,7 +56,7 @@ function renderTable() {
       </td> 
       <td>${client.buyDate}</td>
       <td>
-      <button class="delete" onclick="deleteClient('${client.id}')">Delete</button>
+        <button class="delete" onclick="deleteClient('${client.id}')">Delete</button>
       </td>
     `
     tbody.appendChild(row)
@@ -93,8 +92,8 @@ async function deleteClient(id) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ password })
   })
-  const result = await res.json()
 
+  const result = await res.json()
   if (!result.valid) {
     alert('Incorrect password. Client not deleted.')
     return
@@ -104,17 +103,17 @@ async function deleteClient(id) {
   if (!confirmed) return
 
   clients = clients.filter(c => c.id !== id)
-
   renderTable()
   saveClients()
 }
 
 async function saveClients() {
   try {
+    const cleanedClients = clients.filter(c => c.id && c.name && c.totalSeconds > 0)
     await fetch(`${BACKEND_URL}/clients`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clients })
+      body: JSON.stringify({ clients: cleanedClients })
     })
   } catch (err) {
     console.error('Failed to save clients', err)
@@ -130,7 +129,6 @@ function addHours(id) {
   if (isNaN(hours) || hours <= 0) return
 
   client.totalSeconds += hours * 3600
-
   renderTable()
   saveClients()
 }
@@ -141,15 +139,14 @@ document.getElementById('addClientForm').addEventListener('submit', async (e) =>
   const id = document.getElementById('clientId').value.trim()
   const name = document.getElementById('clientName').value.trim()
   const phone = document.getElementById('clientPhone').value.trim()
-  const today = new Date()
-  const buyDate = today.toISOString().slice(0, 10)
   const hours = parseInt(document.getElementById('hours').value, 10)
   const seconds = hours * 3600
+  const today = new Date().toISOString().slice(0, 10)
 
   if (!id || !name || !phone || isNaN(hours) || hours <= 0) {
     alert('Please fill in all fields correctly.')
     return
-  }  
+  }
 
   const password = prompt('Enter password to add client:')
   if (!password) return
@@ -160,7 +157,6 @@ document.getElementById('addClientForm').addEventListener('submit', async (e) =>
     body: JSON.stringify({ password })
   })
   const result = await res.json()
-
   if (!result.valid) {
     alert('Incorrect password. Client not added.')
     return
@@ -176,7 +172,7 @@ document.getElementById('addClientForm').addEventListener('submit', async (e) =>
     id,
     name,
     phone,
-    buyDate,
+    buyDate: today,
     totalSeconds: seconds,
     elapsedSeconds: 0,
     startTimestamp: null,
@@ -184,7 +180,6 @@ document.getElementById('addClientForm').addEventListener('submit', async (e) =>
   }
 
   clients.push(newClient)
-
   renderTable()
   await saveClients()
   document.getElementById('addClientForm').reset()
@@ -197,7 +192,7 @@ function updateDisplayedTimes() {
     const rowElement = document.getElementById(`row-${client.id}`)
 
     if (timeElement) {
-      timeElement.textContent = formatTime(Math.max(0, remaining))
+      timeElement.textContent = formatTime(remaining)
     }
 
     if (rowElement) {
@@ -217,5 +212,4 @@ function updateDisplayedTimes() {
 
 setInterval(updateDisplayedTimes, 1000)
 setInterval(() => fetchClients().catch(() => {}), 30000)
-
 fetchClients()
