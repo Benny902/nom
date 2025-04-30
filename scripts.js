@@ -51,7 +51,7 @@ function renderTable() {
       </td>   
       <td>  
         <button onclick="addHours('${client.id}')" style="margin-top: 4px;">
-          Add Time
+          Add&nbsp;Time
         </button>
       </td> 
       <td>${client.buyDate}</td>
