@@ -38,7 +38,6 @@ function renderTable() {
     const row = document.createElement('tr')
     row.id = `row-${client.id}`
     row.innerHTML = `
-      <td>${client.id}</td>
       <td>${client.role}</td>
       <td>${client.name}</td>
       <td>${client.phone || ''}</td>
@@ -137,7 +136,7 @@ function addHours(id) {
 document.getElementById('addClientForm').addEventListener('submit', async (e) => {
   e.preventDefault()
 
-  const id = clients.length + 1;
+  const id = crypto.randomUUID()
   const name = document.getElementById('clientName').value.trim()
   const phone = document.getElementById('clientPhone').value.trim()
   const role = document.getElementById('clientRole').value
