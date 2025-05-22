@@ -1,7 +1,8 @@
-// const BACKEND_URL = 'https://nom-gaming-backend.onrender.com' // live backend
-const BACKEND_URL = 'http://localhost:3000' // test backend
+const BACKEND_URL = 'https://nom-gaming-backend.onrender.com' // live backend
+///const BACKEND_URL = 'http://localhost:3000' // test backend
 
 let clients = []
+let dirty = false
 
 async function fetchClients() {
   try {
@@ -31,6 +32,7 @@ function getRemainingSeconds(client) {
 }
 
 function renderTable() {
+  dirty = true
   const tbody = document.querySelector('#clientsTable tbody')
   const filter = document.getElementById('filterStatus')?.value || 'all'
   tbody.innerHTML = ''
@@ -38,7 +40,6 @@ function renderTable() {
   clients.forEach(client => {
     const remaining = getRemainingSeconds(client)
 
-    // Apply filter logic
     if (filter === 'active' && remaining === 0) return
     if (filter === 'inactive' && remaining > 0) return
 
@@ -49,30 +50,35 @@ function renderTable() {
       <td>${client.name}</td>
       <td>${client.phone || ''}</td>
       <td style="background-color: ${client.paused ? '' : '#d4edda'}">
-        <button onclick="toggleTimer('${client.id}')" id="btn-${client.id}">
-          ${client.paused ? 'Start' : 'Pause'}
-        </button>
-      </td>  
-      <td id="time-${client.id}" style="background-color: ${client.paused ? '' : '#d4edda'}">
-        ${formatTime(remaining)}
-      </td>   
-      <td>  
-        <button onclick="addHours('${client.id}')" style="margin-top: 4px;">
-          Add&nbsp;Time
-        </button>
-      </td> 
-      <td>${client.buyDate}</td>
-      <td>
-        <button class="delete" onclick="deleteClient('${client.id}')">Delete</button>
+        <button onclick="toggleTimer('${client.id}')" id="btn-${client.id}">${client.paused ? 'Start' : 'Pause'}</button>
       </td>
+      <td id="time-${client.id}" style="background-color: ${client.paused ? '' : '#d4edda'}">${formatTime(remaining)}</td>
+      <td><button onclick="addHours('${client.id}')" style="margin-top:4px;">Add&nbsp;Time</button></td>
+      <td>${client.buyDate}</td>
+      <td><button class="delete" onclick="deleteClient('${client.id}')">Delete</button></td>
     `
     tbody.appendChild(row)
   })
 }
 
-function toggleTimer(id) {
+async function toggleTimer(id) {
   const client = clients.find(c => c.id === id)
   if (!client) return
+
+  const password = prompt(`Enter password to ${client.paused ? 'start' : 'pause'} the timer:`)
+  if (!password) return
+
+  const res = await fetch(`${BACKEND_URL}/check-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password })
+  })
+
+  const result = await res.json()
+  if (!result.valid) {
+    alert('Incorrect password. Action canceled.')
+    return
+  }
 
   if (client.paused) {
     client.startTimestamp = new Date().toISOString()
@@ -87,44 +93,54 @@ function toggleTimer(id) {
   }
 
   renderTable()
-  saveClients()
+  await saveClients(password, `${client.paused ? 'Paused' : 'Started'} timer for ${client.name}`)
 }
 
 async function deleteClient(id) {
   const password = prompt('Enter password to delete client:')
   if (!password) return
-
-  const res = await fetch(`${BACKEND_URL}/check-password`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password })
-  })
-
-  const result = await res.json()
-  if (!result.valid) {
-    alert('Incorrect password. Client not deleted.')
-    return
-  }
+  if (!(await isValidPassword(password))) return
 
   const confirmed = confirm('Are you sure you want to delete this client?')
   if (!confirmed) return
 
+  const client = clients.find(c => c.id === id)
+  
   clients = clients.filter(c => c.id !== id)
   renderTable()
-  saveClients()
+  await saveClients(password, `deleted client ${client.name}`)
 }
 
-async function saveClients() {
+async function saveClients(passwordOverride = null, actionDesc = 'saved client list') {
+  const password = passwordOverride || prompt('Enter password to save changes:')
+  if (!password) return
+  if (!(await isValidPassword(password))) return
+
   try {
     const cleanedClients = clients.filter(c => c.id && c.name && c.totalSeconds > 0)
     await fetch(`${BACKEND_URL}/clients`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clients: cleanedClients })
+      body: JSON.stringify({ clients: cleanedClients, password, description: actionDesc })
     })
+    dirty = false
   } catch (err) {
     console.error('Failed to save clients', err)
   }
+}
+
+async function isValidPassword(password) {
+  const res = await fetch(`${BACKEND_URL}/check-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password })
+  })
+  const result = await res.json()
+  if (!result.valid) {
+    alert('Incorrect password.')
+    return false
+  }
+  return true
 }
 
 function addHours(id) {
@@ -137,7 +153,7 @@ function addHours(id) {
 
   client.totalSeconds += hours * 3600
   renderTable()
-  saveClients()
+  saveClients(null, `added ${hours} hours to ${client.name}`)
 }
 
 document.getElementById('addClientForm').addEventListener('submit', async (e) => {
@@ -157,24 +173,7 @@ document.getElementById('addClientForm').addEventListener('submit', async (e) =>
   }
 
   const password = prompt('Enter password to add client:')
-  if (!password) return
-
-  const res = await fetch(`${BACKEND_URL}/check-password`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password })
-  })
-  const result = await res.json()
-  if (!result.valid) {
-    alert('Incorrect password. Client not added.')
-    return
-  }
-
-  const exists = clients.some(c => c.id === id)
-  if (exists) {
-    alert('Client with this ID already exists.')
-    return
-  }
+  if (!password || !(await isValidPassword(password))) return
 
   const newClient = {
     id,
@@ -185,12 +184,12 @@ document.getElementById('addClientForm').addEventListener('submit', async (e) =>
     totalSeconds: seconds,
     elapsedSeconds: 0,
     startTimestamp: null,
-    paused: true,
-  }  
+    paused: true
+  }
 
   clients.push(newClient)
   renderTable()
-  await saveClients()
+  await saveClients(password, `added client ${name}`)
   document.getElementById('addClientForm').reset()
 })
 
@@ -200,17 +199,9 @@ function updateDisplayedTimes() {
     const timeElement = document.getElementById(`time-${client.id}`)
     const rowElement = document.getElementById(`row-${client.id}`)
 
-    if (timeElement) {
-      timeElement.textContent = formatTime(remaining)
-    }
-
-    if (rowElement) {
-      if (remaining <= 600 && remaining > 0) {
-        rowElement.style.backgroundColor = '#ffcccc'
-      } else {
-        rowElement.style.backgroundColor = ''
-      }
-    }
+    if (timeElement) timeElement.textContent = formatTime(remaining)
+    if (rowElement)
+      rowElement.style.backgroundColor = remaining <= 600 && remaining > 0 ? '#ffcccc' : ''
 
     if (remaining <= 0 && !client.paused) {
       toggleTimer(client.id)
@@ -222,24 +213,18 @@ function updateDisplayedTimes() {
 let currentSort = { key: null, asc: true }
 
 function sortTable(key) {
-  if (currentSort.key === key) {
-    currentSort.asc = !currentSort.asc
-  } else {
-    currentSort = { key, asc: true }
-  }
+  if (currentSort.key === key) currentSort.asc = !currentSort.asc
+  else currentSort = { key, asc: true }
 
   clients.sort((a, b) => {
     let valA, valB
 
     switch (key) {
-      case 'role':      valA = a.role; valB = b.role; break
-      case 'name':      valA = a.name; valB = b.name; break
-      case 'phone':     valA = a.phone; valB = b.phone; break
-      case 'buyDate':   valA = a.buyDate; valB = b.buyDate; break
-      case 'remaining': 
-        valA = getRemainingSeconds(a)
-        valB = getRemainingSeconds(b)
-        break
+      case 'role': valA = a.role; valB = b.role; break
+      case 'name': valA = a.name; valB = b.name; break
+      case 'phone': valA = a.phone; valB = b.phone; break
+      case 'buyDate': valA = a.buyDate; valB = b.buyDate; break
+      case 'remaining': valA = getRemainingSeconds(a); valB = getRemainingSeconds(b); break
       default: return 0
     }
 
@@ -248,15 +233,16 @@ function sortTable(key) {
       valB = valB.toLowerCase()
     }
 
-    if (valA < valB) return currentSort.asc ? -1 : 1
-    if (valA > valB) return currentSort.asc ? 1 : -1
-    return 0
+    return valA < valB ? (currentSort.asc ? -1 : 1) : valA > valB ? (currentSort.asc ? 1 : -1) : 0
   })
 
   renderTable()
 }
 
-
 setInterval(updateDisplayedTimes, 1000)
-setInterval(() => fetchClients().catch(() => {}), 30000)
+
+setInterval(() => {
+  if (!dirty) fetchClients().catch(() => {})
+}, 30000)
+
 fetchClients()
