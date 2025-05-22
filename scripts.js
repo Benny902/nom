@@ -1,4 +1,5 @@
-const BACKEND_URL = 'https://nom-gaming-backend.onrender.com'
+// const BACKEND_URL = 'https://nom-gaming-backend.onrender.com' // live backend
+const BACKEND_URL = 'http://localhost:3000' // test backend
 
 let clients = []
 
@@ -31,10 +32,16 @@ function getRemainingSeconds(client) {
 
 function renderTable() {
   const tbody = document.querySelector('#clientsTable tbody')
+  const filter = document.getElementById('filterStatus')?.value || 'all'
   tbody.innerHTML = ''
 
   clients.forEach(client => {
     const remaining = getRemainingSeconds(client)
+
+    // Apply filter logic
+    if (filter === 'active' && remaining === 0) return
+    if (filter === 'inactive' && remaining > 0) return
+
     const row = document.createElement('tr')
     row.id = `row-${client.id}`
     row.innerHTML = `
@@ -211,6 +218,44 @@ function updateDisplayedTimes() {
     }
   })
 }
+
+let currentSort = { key: null, asc: true }
+
+function sortTable(key) {
+  if (currentSort.key === key) {
+    currentSort.asc = !currentSort.asc
+  } else {
+    currentSort = { key, asc: true }
+  }
+
+  clients.sort((a, b) => {
+    let valA, valB
+
+    switch (key) {
+      case 'role':      valA = a.role; valB = b.role; break
+      case 'name':      valA = a.name; valB = b.name; break
+      case 'phone':     valA = a.phone; valB = b.phone; break
+      case 'buyDate':   valA = a.buyDate; valB = b.buyDate; break
+      case 'remaining': 
+        valA = getRemainingSeconds(a)
+        valB = getRemainingSeconds(b)
+        break
+      default: return 0
+    }
+
+    if (typeof valA === 'string') {
+      valA = valA.toLowerCase()
+      valB = valB.toLowerCase()
+    }
+
+    if (valA < valB) return currentSort.asc ? -1 : 1
+    if (valA > valB) return currentSort.asc ? 1 : -1
+    return 0
+  })
+
+  renderTable()
+}
+
 
 setInterval(updateDisplayedTimes, 1000)
 setInterval(() => fetchClients().catch(() => {}), 30000)
