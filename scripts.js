@@ -32,7 +32,6 @@ function getRemainingSeconds(client) {
 }
 
 function renderTable() {
-  dirty = true
   const tbody = document.querySelector('#clientsTable tbody')
   const filter = document.getElementById('filterStatus')?.value || 'all'
   tbody.innerHTML = ''
@@ -203,8 +202,11 @@ function updateDisplayedTimes() {
     if (rowElement)
       rowElement.style.backgroundColor = remaining <= 600 && remaining > 0 ? '#ffcccc' : ''
 
-    if (remaining <= 0 && !client.paused) {
-      toggleTimer(client.id)
+    if (remaining <= 0 && !client.paused && client.totalSeconds > 0) {
+      client.paused = true
+      client.startTimestamp = null
+      renderTable()
+      //saveClients(null, `Auto-paused ${client.name} (time expired)`)
       alert(`Client ${client.name} has finished their time.`)
     }
   })
