@@ -146,13 +146,22 @@ function addHours(id) {
   const client = clients.find(c => c.id === id)
   if (!client) return
 
-  const input = prompt(`Add how many hours to ${client.name}?`)
-  const hours = parseInt(input, 10)
-  if (isNaN(hours) || hours <= 0) return
+  const hoursInput = prompt(`How many hours to add to ${client.name}?`, '0')
+  const minutesInput = prompt(`How many minutes to add to ${client.name}?`, '0')
 
-  client.totalSeconds += hours * 3600
+  const hours = parseInt(hoursInput, 10) || 0
+  const minutes = parseInt(minutesInput, 10) || 0
+
+  if (hours <= 0 && minutes <= 0) {
+    alert('Please enter a valid number of hours or minutes.')
+    return
+  }
+
+  const addedSeconds = (hours * 3600) + (minutes * 60)
+  client.totalSeconds += addedSeconds
+
   renderTable()
-  saveClients(null, `added ${hours} hours to ${client.name}`)
+  saveClients(null, `added ${hours} hours and ${minutes} minutes to ${client.name}`)
 }
 
 document.getElementById('addClientForm').addEventListener('submit', async (e) => {
@@ -203,10 +212,16 @@ function updateDisplayedTimes() {
       rowElement.style.backgroundColor = remaining <= 600 && remaining > 0 ? '#ffcccc' : ''
 
     if (remaining <= 0 && !client.paused && client.totalSeconds > 0) {
+      // Add final elapsed time before pausing
+      const start = new Date(client.startTimestamp).getTime()
+      const now = Date.now()
+      const extraElapsed = Math.floor((now - start) / 1000)
+      client.elapsedSeconds += extraElapsed
+
       client.paused = true
       client.startTimestamp = null
       renderTable()
-      //saveClients(null, `Auto-paused ${client.name} (time expired)`)
+      //saveClients(null, `Auto-paused ${client.name} (time expired)`, true)
       alert(`Client ${client.name} has finished their time.`)
     }
   })
