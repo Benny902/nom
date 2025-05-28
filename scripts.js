@@ -222,6 +222,7 @@ function updateDisplayedTimes() {
       client.startTimestamp = null
       renderTable()
       //saveClients(null, `Auto-paused ${client.name} (time expired)`, true)
+      logAutoPause(client.name)
       alert(`Client ${client.name} has finished their time.`)
     }
   })
@@ -255,6 +256,19 @@ function sortTable(key) {
 
   renderTable()
 }
+
+async function logAutoPause(clientName) {
+  try {
+    await fetch(`${BACKEND_URL}/log-auto-pause`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientName })
+    })
+  } catch (err) {
+    console.error('Failed to log auto-pause:', err)
+  }
+}
+
 
 setInterval(updateDisplayedTimes, 1000)
 
