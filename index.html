@@ -15,9 +15,22 @@
   <main>
     <section id="addClientSection">
       <form id="addClientForm">
-        <input type="text" id="clientName" placeholder="Name" required>
-        <input type="text" id="clientPhone" placeholder="Phone" required>
-        <input type="number" id="hours" placeholder="Hours" min="1" required>
+        <div class="floating-input">
+          <input type="text" id="clientName" placeholder=" " required>
+          <label for="clientName">Name</label>
+        </div>
+        <div class="floating-input">
+          <input type="text" id="clientPhone" placeholder=" " required>
+          <label for="clientPhone">Phone</label>
+        </div>   
+        <div class="floating-input">
+          <input type="number" id="hours" placeholder=" " value="0" min="0" required>
+          <label for="hours">Hours</label>
+        </div>  
+        <div class="floating-input">
+          <input type="number" id="minutes" placeholder=" " value="0" min="0" max="59" required>
+          <label for="minutes">Minutes</label>
+        </div>           
         <select id="clientRole">
           <option value="Main" selected>Main</option>
           <option value="VIP">VIP</option>

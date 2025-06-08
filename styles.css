@@ -32,6 +32,10 @@ body {
     padding: 10px;
     font-size: 16px;
   }
+
+  #clientRole {
+    height: 42px;
+  }
   
   #addClientForm button {
     background: #28a745;
@@ -39,6 +43,7 @@ body {
     border: none;
     cursor: pointer;
     border-radius: 4px;
+    height: 42px;
   }
   
   #addClientForm button:hover {
@@ -100,5 +105,36 @@ body {
   .filter-container select {
     margin-left: 8px;
     padding: 4px;
+  }
+  
+  .floating-input {
+    position: relative;
+    margin-bottom: 16px;
+  }
+  
+  .floating-input input {
+    padding: 10px;
+    font-size: 16px;
+  }
+  
+  .floating-input label {
+    position: absolute;
+    top: 12px;
+    left: 8px;
+    font-size: 16px;
+    color: #999;
+    pointer-events: none;
+    background: white;
+    padding: 0 4px;
+    transition: 0.2s ease all;
+  }
+  
+  .floating-input input:focus + label,
+  .floating-input input:not(:placeholder-shown) + label,
+  .floating-input.active label {
+    top: -8px;
+    left: 6px;
+    font-size: 12px;
+    color: #333;
   }
   

@@ -171,12 +171,13 @@ document.getElementById('addClientForm').addEventListener('submit', async (e) =>
   const name = document.getElementById('clientName').value.trim()
   const phone = document.getElementById('clientPhone').value.trim()
   const role = document.getElementById('clientRole').value
-  const hours = parseInt(document.getElementById('hours').value, 10)
-  const seconds = hours * 3600
+  const hours = parseInt(document.getElementById('hours').value, 10) || 0
+  const minutes = parseInt(document.getElementById('minutes').value, 10) || 0
+  const seconds = (hours * 3600) + (minutes * 60)
   const today = new Date().toISOString().slice(0, 10)
 
-  if (!id || !name || !phone || isNaN(hours) || hours <= 0) {
-    alert('Please fill in all fields correctly.')
+  if (!id || !name || !phone || seconds <= 0) {
+    alert('Please fill in all fields correctly. You must enter at least hour or minutes.')
     return
   }
 
@@ -268,6 +269,22 @@ async function logAutoPause(clientId, clientName) {
     console.error('Failed to log auto-pause:', err)
   }
 }
+
+document.querySelectorAll('.floating-input input').forEach(input => {
+  const parent = input.parentElement
+
+  const checkActive = () => {
+    if (input.value.trim() !== '') {
+      parent.classList.add('active')
+    } else {
+      parent.classList.remove('active')
+    }
+  }
+
+  // Run on load and on input change
+  checkActive()
+  input.addEventListener('input', checkActive)
+})
 
 setInterval(updateDisplayedTimes, 1000)
 
