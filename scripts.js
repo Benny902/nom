@@ -9,6 +9,7 @@ async function fetchClients() {
     const res = await fetch(`${BACKEND_URL}/clients`)
     clients = await res.json()
     renderTable()
+    updateCounters();
   } catch (err) {
     console.error('Failed to fetch clients', err)
   }
@@ -58,6 +59,7 @@ function renderTable() {
     `
     tbody.appendChild(row)
   })
+  updateCounters();
 }
 
 async function toggleTimer(id) {
@@ -201,6 +203,32 @@ document.getElementById('addClientForm').addEventListener('submit', async (e) =>
   await saveClients(password, `added client ${name}`)
   document.getElementById('addClientForm').reset()
 })
+
+function updateCounters() {
+  let total = clients.length;
+  let active = 0;
+  let inactive = 0;
+  let playingNow = 0;
+
+  clients.forEach(client => {
+    const remaining = getRemainingSeconds(client);
+
+    if (remaining > 5) {
+      active++;
+    } else {
+      inactive++;
+    }
+
+    if (!client.paused) {
+      playingNow++;
+    }
+  });
+
+  document.getElementById('totalCounter').textContent = total;
+  document.getElementById('activeCounter').textContent = active;
+  document.getElementById('inactiveCounter').textContent = inactive;
+  document.getElementById('playingNowCounter').textContent = playingNow;
+}
 
 function updateDisplayedTimes() {
   clients.forEach(client => {
