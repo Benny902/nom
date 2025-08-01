@@ -115,8 +115,8 @@ async function toggleTimer(id) {
     client.paused = true
   }
 
-  renderTable()
   await saveClients(password, `${client.paused ? 'Paused' : 'Started'} timer for ${client.name}`)
+  await fetchClients()
 }
 
 async function deleteClient(id) {
@@ -130,8 +130,8 @@ async function deleteClient(id) {
   const client = clients.find(c => c.id === id)
   
   clients = clients.filter(c => c.id !== id)
-  renderTable()
   await saveClients(password, `deleted client ${client.name}`)
+  await fetchClients()
 }
 
 async function saveClients(passwordOverride = null, actionDesc = 'saved client list') {
@@ -139,13 +139,24 @@ async function saveClients(passwordOverride = null, actionDesc = 'saved client l
   if (!password) return
   if (!(await isValidPassword(password))) return
 
+  // Safety: Block empty list save!
+  const cleanedClients = clients.filter(c => c.id && c.name && c.totalSeconds > 0)
+  if (cleanedClients.length === 0) {
+    alert('לא ניתן לשמור רשימה ריקה! פעולה בוטלה.');
+    return;
+  }
+
   try {
-    const cleanedClients = clients.filter(c => c.id && c.name && c.totalSeconds > 0)
-    await fetch(`${BACKEND_URL}/clients`, {
+    const resp = await fetch(`${BACKEND_URL}/clients`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ clients: cleanedClients, password, description: actionDesc, branch })
     })
+    if (!resp.ok) {
+      const data = await resp.json();
+      alert(data.message || 'שגיאה בשמירת לקוחות!');
+      return;
+    }
     dirty = false
   } catch (err) {
     console.error('Failed to save clients', err)
@@ -166,7 +177,7 @@ async function isValidPassword(password) {
   return true
 }
 
-function addHours(id) {
+async function addHours(id) {
   const client = clients.find(c => c.id === id)
   if (!client) return
 
@@ -184,8 +195,8 @@ function addHours(id) {
   const addedSeconds = (hours * 3600) + (minutes * 60)
   client.totalSeconds += addedSeconds
 
-  renderTable()
-  saveClients(null, `added ${hours} hours and ${minutes} minutes to ${client.name}`)
+  await saveClients(null, `added ${hours} hours and ${minutes} minutes to ${client.name}`)
+  await fetchClients()
 }
 
 document.getElementById('addClientForm').addEventListener('submit', async (e) => {
@@ -193,13 +204,13 @@ document.getElementById('addClientForm').addEventListener('submit', async (e) =>
 
   const id = crypto.randomUUID()
   const name = document.getElementById('clientName').value.trim();
-  if (name.length < 5) {
-    alert('חייב שם מלא! ');
+  if (name.length < 5 || !name.includes(' ')) {
+    alert('חייב להזין שם מלא (שם פרטי ושם משפחה, עם רווח ביניהם).');
     return;
   }
   const phone = document.getElementById('clientPhone').value.trim();
   if (!/^[0][0-9]{9}$/.test(phone)) {
-    alert('חייב מספר פלאפון מלא!');
+    alert('חייב מספר פלאפון מלא! (10 ספרות)');
     return;
   }
   const role = document.getElementById('clientRole').value
@@ -245,9 +256,9 @@ document.getElementById('addClientForm').addEventListener('submit', async (e) =>
     branch
   }
 
-  clients.push(newClient)
-  renderTable()
+  clients.push(newClient); 
   await saveClients(password, `added client ${name}`)
+  await fetchClients()
   document.getElementById('addClientForm').reset()
 })
 
@@ -363,8 +374,10 @@ document.querySelectorAll('.floating-input input').forEach(input => {
 
 setInterval(updateDisplayedTimes, 1000)
 
+/*
 setInterval(() => {
   if (!dirty) fetchClients().catch(() => {})
 }, 30000)
+*/
 
 fetchClients()
