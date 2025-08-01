@@ -196,3 +196,35 @@ body {
 .home-link:hover {
   text-decoration: underline;
 }
+
+.tooltip-message {
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  position: relative;
+  cursor: pointer;
+  color: red;
+  text-decoration: underline dotted;
+  font-size: 2rem;
+}
+.tooltip-message .tooltip-text {
+  visibility: hidden;
+  opacity: 0;
+  width: 800px;
+  background: #222;
+  color: #fff;
+  text-align: center;
+  border-radius: 8px;
+  padding: 8px;
+  position: absolute;
+  z-index: 99;
+  bottom: 120%; /* place above */
+  left: 50%;
+  transform: translateX(-50%);
+  transition: opacity 0.2s;
+  font-size: 16px;
+}
+.tooltip-message:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
