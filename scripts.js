@@ -1,12 +1,33 @@
 const BACKEND_URL = 'https://nom-gaming-backend.onrender.com' // live backend
-///const BACKEND_URL = 'http://localhost:3000' // test backend
+//const BACKEND_URL = 'http://localhost:3000' // test backend
 
 let clients = []
+// Detect branch by path
+let branch = 'ראשון לציון'; // default
+if (location.pathname.includes('/herz')) branch = 'הרצליה';
+else if (location.pathname.includes('/rosh')) branch = 'ראש העין';
+else if (location.pathname.includes('/rishon')) branch = 'ראשון לציון';
+
+// Highlight current tab
+document.addEventListener('DOMContentLoaded', function() {
+  const tabs = document.querySelectorAll('.branch-tab');
+  let highlight = '';
+  if (location.pathname.includes('/herz')) highlight = 'הרצליה';
+  else if (location.pathname.includes('/rosh')) highlight = 'ראש העין';
+  else if (location.pathname.includes('/rishon')) highlight = 'ראשון לציון';
+
+  tabs.forEach(tab => {
+    if (tab.textContent.trim() === highlight) tab.classList.add('active');
+  });
+});
+
+
+
 let dirty = false
 
 async function fetchClients() {
   try {
-    const res = await fetch(`${BACKEND_URL}/clients`)
+    const res = await fetch(`${BACKEND_URL}/clients?branch=${encodeURIComponent(branch)}`)
     clients = await res.json()
     renderTable()
     updateCounters();
@@ -56,6 +77,7 @@ function renderTable() {
       <td><button onclick="addHours('${client.id}')" style="margin-top:4px;">Add&nbsp;Time</button></td>
       <td>${client.buyDate}</td>
       <td><button class="delete" onclick="deleteClient('${client.id}')">Delete</button></td>
+      <td>${client.branch || ''}</td>
     `
     tbody.appendChild(row)
   })
@@ -122,7 +144,7 @@ async function saveClients(passwordOverride = null, actionDesc = 'saved client l
     await fetch(`${BACKEND_URL}/clients`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clients: cleanedClients, password, description: actionDesc })
+      body: JSON.stringify({ clients: cleanedClients, password, description: actionDesc, branch })
     })
     dirty = false
   } catch (err) {
@@ -170,17 +192,41 @@ document.getElementById('addClientForm').addEventListener('submit', async (e) =>
   e.preventDefault()
 
   const id = crypto.randomUUID()
-  const name = document.getElementById('clientName').value.trim()
-  const phone = document.getElementById('clientPhone').value.trim()
+  const name = document.getElementById('clientName').value.trim();
+  if (name.length < 5) {
+    alert('חייב שם מלא! ');
+    return;
+  }
+  const phone = document.getElementById('clientPhone').value.trim();
+  if (!/^[0][0-9]{9}$/.test(phone)) {
+    alert('חייב מספר פלאפון מלא!');
+    return;
+  }
   const role = document.getElementById('clientRole').value
   const hours = parseInt(document.getElementById('hours').value, 10) || 0
   const minutes = parseInt(document.getElementById('minutes').value, 10) || 0
   const seconds = (hours * 3600) + (minutes * 60)
   const today = new Date().toISOString().slice(0, 10)
 
+  const duplicateName = clients.some(
+    c => c.name.trim().toLowerCase() === name.toLowerCase()
+  );
+  if (duplicateName) {
+    alert('שם זה כבר קיים במערכת.');
+    return;
+  }
+
+  const duplicatePhone = clients.some(
+    c => c.phone.trim() === phone
+  );
+  if (duplicatePhone) {
+    alert('מספר טלפון זה כבר קיים במערכת.');
+    return;
+  }
+
   if (!id || !name || !phone || seconds <= 0) {
-    alert('Please fill in all fields correctly. You must enter at least hour or minutes.')
-    return
+    alert('אנא מלא את כל השדות כראוי. חובה להכניס לפחות שעה או דקות.');
+    return;
   }
 
   const password = prompt('Enter password to add client:')
@@ -195,7 +241,8 @@ document.getElementById('addClientForm').addEventListener('submit', async (e) =>
     totalSeconds: seconds,
     elapsedSeconds: 0,
     startTimestamp: null,
-    paused: true
+    paused: true,
+    branch
   }
 
   clients.push(newClient)
@@ -291,7 +338,7 @@ async function logAutoPause(clientId, clientName) {
     await fetch(`${BACKEND_URL}/log-auto-pause`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clientId, clientName })
+      body: JSON.stringify({ clientId, clientName, branch })
     })
   } catch (err) {
     console.error('Failed to log auto-pause:', err)

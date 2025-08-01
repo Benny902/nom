@@ -9,76 +9,91 @@
 </head>
 <body>
   <header>
-    <h1>NOM-Gaming - Client Hours</h1>
+    <h1>
+      <a href="../" class="home-link" style="color: inherit; text-decoration: none;">
+        NOM-Gaming - Client Hours
+      </a>
+    </h1>
       <section id="counters" style="display: flex; justify-content: center; gap: 40px; margin-top: 15px; font-size: 1.2em;">
         <div>משחקים כרגע: <span id="playingNowCounter">0</span></div>
         <div>פעילים: <span id="activeCounter">0</span></div>
         <div>לא פעילים: <span id="inactiveCounter">0</span></div>
         <div>סה"כ: <span id="totalCounter">0</span></div>
+               <div>: כללי לשלושת הסניפים </div>
       </section>
   </header>
+
 <br>
+  <div class="tabs">
+    <a class="tab-link" href="herz">הרצליה</a>
+    <a class="tab-link" href="rosh">ראש העין</a>
+    <a class="tab-link" href="rishon">ראשון לציון</a>
+  </div>
+ 
 
-  <main>
-    <section id="addClientSection">
-      <form id="addClientForm">
-        <div class="floating-input">
-          <input type="text" id="clientName" placeholder=" " required>
-          <label for="clientName">Name</label>
-        </div>
-        <div class="floating-input">
-          <input type="text" id="clientPhone" placeholder=" " required>
-          <label for="clientPhone">Phone</label>
-        </div>   
-        <div class="floating-input">
-          <input type="number" id="hours" placeholder=" " value="0" min="0" required>
-          <label for="hours">Hours</label>
-        </div>  
-        <div class="floating-input">
-          <input type="number" id="minutes" placeholder=" " value="0" min="0" max="59" required>
-          <label for="minutes">Minutes</label>
-        </div>           
-        <select id="clientRole">
-          <option value="Main" selected>Main</option>
-          <option value="VIP">VIP</option>
-        </select>
-        <button type="submit">Add Client</button>
-      </form>
-    </section>
+ 
 
-    <hr>
 
-    <section class="filter-container">
-      <label for="filterStatus"><b>Show </b></label>
-      <select id="filterStatus" onchange="renderTable()">
-        <option value="all" selected>All</option>
-        <option value="active">Active</option>
-        <option value="inactive">Inactive</option>
-      </select>  
-    </section>
+<script>
+const BACKEND_URL = 'https://nom-gaming-backend.onrender.com' // live backend
+//const BACKEND_URL = 'http://localhost:3000' // test backend
 
-    <section id="clientsSection">
-      <table id="clientsTable">
-        <thead>
-          <tr>
-            <th onclick="sortTable('role')">Role</th>
-            <th onclick="sortTable('name')">Name</th>
-            <th onclick="sortTable('phone')">Phone</th>
-            <th>Actions</th>
-            <th onclick="sortTable('remaining')">Timer</th>
-            <th>Add&nbsp;Time</th>
-            <th onclick="sortTable('buyDate')">Added&nbsp;date</th>
-            <th>Delete</th>
-          </tr>          
-        </thead>        
-        <tbody>
-          <!-- Dynamically filled -->
-        </tbody>
-      </table>
-    </section>
+const branches = [
+  { name: "הרצליה", path: "herz" },
+  { name: "ראש העין", path: "rosh" },
+  { name: "ראשון לציון", path: "rishon" }
+];
 
-  </main>
+async function fetchAllBranchesAndUpdateCounters() {
+  let allClients = [];
+  try {
+    // Fetch all three in parallel
+    const results = await Promise.all(
+      branches.map(branch =>
+        fetch(`${BACKEND_URL}/clients?branch=${encodeURIComponent(branch.name)}`)
+          .then(res => res.json())
+          .catch(() => [])
+      )
+    );
+    // Flatten results into one array
+    allClients = results.flat();
+  } catch (err) {
+    console.error("Error fetching branches", err);
+  }
 
-  <script src="scripts.js"></script>
+  // Now sum up counters
+  let total = allClients.length;
+  let active = 0;
+  let inactive = 0;
+  let playingNow = 0;
+
+  function getRemainingSeconds(client) {
+    if (client.paused || !client.startTimestamp)
+      return Math.max(0, client.totalSeconds - client.elapsedSeconds);
+
+    const start = new Date(client.startTimestamp).getTime();
+    const now = Date.now();
+    const extraElapsed = Math.floor((now - start) / 1000);
+    return Math.max(0, client.totalSeconds - (client.elapsedSeconds + extraElapsed));
+  }
+
+  allClients.forEach(client => {
+    const remaining = getRemainingSeconds(client);
+    if (remaining > 5) active++;
+    else inactive++;
+    if (!client.paused) playingNow++;
+  });
+
+  document.getElementById('totalCounter').textContent = total;
+  document.getElementById('activeCounter').textContent = active;
+  document.getElementById('inactiveCounter').textContent = inactive;
+  document.getElementById('playingNowCounter').textContent = playingNow;
+}
+
+fetchAllBranchesAndUpdateCounters();
+setInterval(fetchAllBranchesAndUpdateCounters, 30000);
+</script>
+
+
 </body>
 </html>
