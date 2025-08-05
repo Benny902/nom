@@ -226,7 +226,8 @@ document.getElementById('addClientForm').addEventListener('submit', async (e) =>
     alert('שם זה כבר קיים במערכת.');
     return;
   }
-
+  
+/*
   const duplicatePhone = clients.some(
     c => c.phone.trim() === phone
   );
@@ -234,6 +235,7 @@ document.getElementById('addClientForm').addEventListener('submit', async (e) =>
     alert('מספר טלפון זה כבר קיים במערכת.');
     return;
   }
+  */
 
   if (!id || !name || !phone || seconds <= 0) {
     alert('אנא מלא את כל השדות כראוי. חובה להכניס לפחות שעה או דקות.');
