@@ -134,7 +134,8 @@ async function deleteClient(id) {
   await fetchClients()
 }
 
-async function saveClients(passwordOverride = null, actionDesc = 'saved client list') {
+// UPDATED: Modified saveClients function to handle raffle
+async function saveClients(passwordOverride = null, actionDesc = 'saved client list', raffleInfo = null) {
   const password = passwordOverride || prompt('Enter password to save changes:')
   if (!password) return
   if (!(await isValidPassword(password))) return
@@ -147,10 +148,22 @@ async function saveClients(passwordOverride = null, actionDesc = 'saved client l
   }
 
   try {
+    const requestBody = { 
+      clients: cleanedClients, 
+      password, 
+      description: actionDesc, 
+      branch
+    }
+    
+    // Add raffle info if provided
+    if (raffleInfo) {
+      requestBody.raffleInfo = raffleInfo
+    }
+
     const resp = await fetch(`${BACKEND_URL}/clients`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clients: cleanedClients, password, description: actionDesc, branch })
+      body: JSON.stringify(requestBody)
     })
     if (!resp.ok) {
       const data = await resp.json();
@@ -177,6 +190,7 @@ async function isValidPassword(password) {
   return true
 }
 
+// UPDATED: Modified addHours function to handle raffle
 async function addHours(id) {
   const client = clients.find(c => c.id === id)
   if (!client) return
@@ -195,10 +209,22 @@ async function addHours(id) {
   const addedSeconds = (hours * 3600) + (minutes * 60)
   client.totalSeconds += addedSeconds
 
-  await saveClients(null, `added ${hours} hours and ${minutes} minutes to ${client.name}`)
+  const totalHoursAdded = addedSeconds / 3600
+  // NEW: Check if client should be added to raffle (4+ hours added)
+  let raffleInfo = null
+  if (totalHoursAdded >= 4) {
+    raffleInfo = {
+      name: client.name,
+      phone: client.phone,
+      hoursAdded: totalHoursAdded
+    }
+  }
+
+  await saveClients(null, `added ${hours} hours and ${minutes} minutes to ${client.name}`, raffleInfo)
   await fetchClients()
 }
 
+// UPDATED: Modified form submission to handle raffle for new clients
 document.getElementById('addClientForm').addEventListener('submit', async (e) => {
   e.preventDefault()
 
@@ -217,6 +243,7 @@ document.getElementById('addClientForm').addEventListener('submit', async (e) =>
   const hours = parseInt(document.getElementById('hours').value, 10) || 0
   const minutes = parseInt(document.getElementById('minutes').value, 10) || 0
   const seconds = (hours * 3600) + (minutes * 60)
+  const totalHours = seconds / 3600
   const today = new Date().toISOString().slice(0, 10)
 
   const duplicateName = clients.some(
@@ -257,9 +284,19 @@ document.getElementById('addClientForm').addEventListener('submit', async (e) =>
     paused: true,
     branch
   }
-
   clients.push(newClient); 
-  await saveClients(password, `added client ${name}`)
+
+  // NEW: Check if client should be added to raffle (4+ hours)
+  let raffleInfo = null
+  if (totalHours >= 4) {
+    raffleInfo = {
+      name: name,
+      phone: phone,
+      hoursAdded: totalHours
+    }
+  }
+
+  await saveClients(password, `added client ${name}`, raffleInfo)
   await fetchClients()
   document.getElementById('addClientForm').reset()
 })
