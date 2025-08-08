@@ -134,8 +134,6 @@ async function fetchAllBranchesAndUpdateCounters() {
 
 // Main init
 (async () => {
-  const pw = await requirePassword();
-  if (!pw) return;
   fetchAllBranchesAndUpdateCounters();
   setInterval(fetchAllBranchesAndUpdateCounters, 30000);
 })();
