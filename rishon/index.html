@@ -107,6 +107,28 @@
 
   </main>
 
+  <script>
+  (function () {
+    function highlightCurrentBranch() {
+      // Detect which branch we’re on from the URL
+      const seg = (location.pathname.split('/').filter(Boolean).pop() || '').toLowerCase();
+      const key = ['herz', 'rosh', 'rishon'].find(k => seg.includes(k)) || null;
+
+      // Toggle "active" on the matching link
+      document.querySelectorAll('.branch-tabs .branch-tab').forEach(a => {
+        const path = new URL(a.href, location.href).pathname.toLowerCase();
+        const isMatch = key && (path.endsWith('/' + key) || path.endsWith('/' + key + '/'));
+        a.classList.toggle('active', !!isMatch);
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', highlightCurrentBranch);
+    } else {
+      highlightCurrentBranch();
+    }
+  })();
+  </script>
   <style id="auth-hide">body{visibility:hidden}</style>
   <script src="../auth-gate.js"></script>
 </body>
