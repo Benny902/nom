@@ -1,5 +1,5 @@
   (async () => {
-    const BACKEND_URL = window.ADMIN_BACKEND_URL || 'https://nom-gaming-backend.onrender.com';
+    const GATE_BACKEND_URL = window.ADMIN_BACKEND_URL || 'https://nom-gaming-backend.onrender.com';
     const AUTH_KEY = 'adminAuth';
     const AUTH_TTL_MS = 3600 * 1000;
 
