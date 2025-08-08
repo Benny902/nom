@@ -190,10 +190,20 @@ async function syncFromServer(showError = false) {
   try {
     const url = `${BACKEND_URL}/clients-by-phone?phone=${encodeURIComponent(pendingPhone)}&branch=${encodeURIComponent(pendingBranch)}&_ts=${Date.now()}`;
     const res = await fetch(url, { cache: 'no-store' });
+
+    // Handle 404/empty explicitly — treat as "no clients" instead of keeping stale UI
     if (!res.ok) {
-      if (showError) alert('לא נמצאו משתמשים עם מספר זה.');
+      if (res.status === 404) {
+        trackedClients = [];
+        saveCache(pendingPhone, pendingBranch, trackedClients);
+        renderClients(new Date().toLocaleTimeString('he-IL', { hour12:false }));
+        if (showError) alert('לא נמצאו משתמשים עם מספר זה.');
+        return;
+      }
+      if (showError) alert('שגיאה ברענון הנתונים');
       return;
     }
+
     const fresh = await res.json();
 
     // Normalize paused clients so no local countdown runs if paused
@@ -201,7 +211,7 @@ async function syncFromServer(showError = false) {
       if (c.paused) c.startTimestamp = null;
     });
 
-    trackedClients = fresh;
+    trackedClients = Array.isArray(fresh) ? fresh : [];
     saveCache(pendingPhone, pendingBranch, trackedClients);
     const lastSyncText = new Date().toLocaleTimeString('he-IL', { hour12:false });
     renderClients(lastSyncText);
@@ -288,7 +298,7 @@ document.getElementById('verifyOtpBtn').addEventListener('click', async () => {
     const data = await res.json();
     if (res.ok && data.verified) {
       verified = true;
-      setPhoneVerified(pendingPhone);      // <-- cache verification for this phone
+      setPhoneVerified(pendingPhone);      // cache verification for this phone
       await syncFromServer(true);          // immediate fetch after verify
       startSyncLoop();
       setTimeout(syncFromServer, 1000);    // tiny second pass to beat races
@@ -307,25 +317,30 @@ document.getElementById('verifyOtpBtn').addEventListener('click', async () => {
 setInterval(() => {
   if (!verified) return;
 
-  trackedClients.forEach(client => {
-    const el = document.getElementById(`remaining-${client.id}`);
-    const statusEl = document.getElementById(`status-${client.id}`);
-    if (!el || !statusEl) return;
+  try {
+    trackedClients.forEach(client => {
+      const el = document.getElementById(`remaining-${client.id}`);
+      const statusEl = document.getElementById(`status-${client.id}`);
+      if (!el || !statusEl) return;
 
-    let rem = getRemainingSeconds(client);
+      let rem = getRemainingSeconds(client);
 
-    if (!client.paused) {
-      if (rem <= 0) {
-        rem = 0;
-        // Flip UI badge locally until next backend sync confirms paused state
-        statusEl.textContent = 'לא פעיל';
-        statusEl.classList.remove('status-active');
-        statusEl.classList.add('status-paused');
+      if (!client.paused) {
+        if (rem <= 0) {
+          rem = 0;
+          // Flip UI badge locally until next backend sync confirms paused state
+          statusEl.textContent = 'לא פעיל';
+          statusEl.classList.remove('status-active');
+          statusEl.classList.add('status-paused');
+        }
       }
-    }
 
-    el.textContent = `יתרת זמן: ${formatTime(rem)}`;
-  });
+      el.textContent = `יתרת זמן: ${formatTime(rem)}`;
+    });
+  } catch (e) {
+    // Super defensive: never let UI tick crash the page
+    console.warn('Tick error (ignored):', e);
+  }
 }, 1000);
 
 // ===== optional: boot from cache (no phone yet) =====
