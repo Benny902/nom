@@ -1,5 +1,5 @@
   (async () => {
-    const GATE_BACKEND_URL = window.ADMIN_BACKEND_URL || 'https://nom-gaming-backend.onrender.com';
+    const GATE_BACKEND_URL = window.ADMIN_GATE_BACKEND_URL || 'https://nom-gaming-backend.onrender.com';
     const AUTH_KEY = 'adminAuth';
     const AUTH_TTL_MS = 3600 * 1000;
 
@@ -17,7 +17,7 @@
     }
 
     async function verify(password) {
-      const res = await fetch(`${BACKEND_URL}/check-password`, {
+      const res = await fetch(`${GATE_BACKEND_URL}/check-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password })
