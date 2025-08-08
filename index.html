@@ -44,6 +44,48 @@ const branches = [
   { name: "ראשון לציון", path: "rishon" }
 ];
 
+// Ask password with cache for 1 hour
+async function requirePassword() {
+  const cache = localStorage.getItem("adminAuth");
+  if (cache) {
+    const parsed = JSON.parse(cache);
+    if (Date.now() - parsed.timestamp < 3600 * 1000) {
+      return parsed.password; // Still valid
+    }
+  }
+
+  while (true) {
+    const password = prompt('הכנס סיסמה לצפייה בדף זה:');
+    if (!password) {
+      alert('גישה נדחתה.');
+      window.location.href = "about:blank";
+      return null;
+    }
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/check-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+      const result = await res.json();
+      if (result.valid) {
+        localStorage.setItem("adminAuth", JSON.stringify({
+          password,
+          timestamp: Date.now()
+        }));
+        return password;
+      } else {
+        alert('סיסמה שגויה, נסה שוב.');
+      }
+    } catch (err) {
+      alert('שגיאה בבדיקת הסיסמה.');
+      console.error(err);
+      return null;
+    }
+  }
+}
+
 async function fetchAllBranchesAndUpdateCounters() {
   let allClients = [];
   try {
@@ -90,8 +132,13 @@ async function fetchAllBranchesAndUpdateCounters() {
   document.getElementById('playingNowCounter').textContent = playingNow;
 }
 
-fetchAllBranchesAndUpdateCounters();
-setInterval(fetchAllBranchesAndUpdateCounters, 30000);
+// Main init
+(async () => {
+  const pw = await requirePassword();
+  if (!pw) return;
+  fetchAllBranchesAndUpdateCounters();
+  setInterval(fetchAllBranchesAndUpdateCounters, 30000);
+})();
 </script>
 
 
