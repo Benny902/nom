@@ -298,6 +298,15 @@ document.getElementById('addClientForm').addEventListener('submit', async (e) =>
 
   await saveClients(password, `added client ${name}`, raffleInfo)
   await fetchClients()
+  alert(`משתמש ${name} נוסף בהצלחה!`)
+
+  // NEW: trigger WhatsApp invite (non-blocking)
+  fetch(`${BACKEND_URL}/wa-invite`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, phone, password })
+  }).catch(err => console.error('WA invite failed:', err))
+
   document.getElementById('addClientForm').reset()
 })
 
